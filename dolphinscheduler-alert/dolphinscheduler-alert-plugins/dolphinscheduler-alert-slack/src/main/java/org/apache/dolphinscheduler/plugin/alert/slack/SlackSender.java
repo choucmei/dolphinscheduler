@@ -39,17 +39,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public final class SlackSender {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(SlackSender.class);
+    private static final Logger logger = LoggerFactory.getLogger(SlackSender.class);
 
     private final String webHookUrl;
     private final String botName;
 
     public SlackSender(Map<String, String> slackAlertParam) {
-        webHookUrl = slackAlertParam.get(SlackParamsConstants.SLACK_WEN_HOOK_URL_NAME);
+        webHookUrl = slackAlertParam.get(SlackParamsConstants.SLACK_WEB_HOOK_URL_NAME);
         botName = slackAlertParam.get(SlackParamsConstants.SLACK_BOT_NAME);
         Preconditions.checkArgument(!Objects.isNull(webHookUrl), "SlackWebHookURL can not be null");
         Preconditions.checkArgument(webHookUrl.startsWith("https://hooks.slack.com/services/"), "SlackWebHookURL invalidate");
@@ -83,7 +84,7 @@ public final class SlackSender {
             HttpEntity entity = response.getEntity();
             return EntityUtils.toString(entity, "UTF-8");
         } catch (Exception e) {
-            log.error("Send message to slack error.", e);
+            logger.error("Send message to slack error.", e);
             return "System Exception";
         }
     }

@@ -24,6 +24,8 @@ public class TaskConstants {
     }
 
     public static final String APPLICATION_REGEX = "application_\\d+_\\d+";
+    
+    public static final String SETVALUE_REGEX = "\\$\\{setValue\\(([^)]*)\\)}";
 
     /**
      * string false
@@ -35,6 +37,11 @@ public class TaskConstants {
      */
     public static final int EXIT_CODE_KILL = 137;
     public static final String PID = "pid";
+
+    /**
+     * QUESTION ?
+     */
+    public static final String QUESTION = "?";
 
     /**
      * comma ,
@@ -88,6 +95,10 @@ public class TaskConstants {
      * AT SIGN
      */
     public static final String AT_SIGN = "@";
+    /**
+     * UNDERLINE
+     */
+    public static final String UNDERLINE = "_";
 
     /**
      * sleep time
@@ -126,7 +137,27 @@ public class TaskConstants {
     /**
      * task log info format
      */
-    public static final String TASK_LOG_INFO_FORMAT = "TaskLogInfo-%s";
+    public static final String TASK_LOG_LOGGER_NAME = "TaskLogLogger";
+
+    /**
+     * task log logger name format
+     */
+    public static final String TASK_LOG_LOGGER_NAME_FORMAT = TASK_LOG_LOGGER_NAME + "-%s";
+
+    /**
+     * Task Logger's prefix
+     */
+    public static final String TASK_LOGGER_INFO_PREFIX = "TASK";
+
+    /**
+     * Task Logger Thread's name
+     */
+    public static final String TASK_APPID_LOG_FORMAT = "taskAppId";
+
+    /**
+     * get output log service
+     */
+    public static final String GET_OUTPUT_LOG_SERVICE = "-getOutputLogService";
 
     /**
      * date format of yyyyMMdd
@@ -259,7 +290,7 @@ public class TaskConstants {
      * driver
      */
     public static final String ORG_POSTGRESQL_DRIVER = "org.postgresql.Driver";
-    public static final String COM_MYSQL_JDBC_DRIVER = "com.mysql.jdbc.Driver";
+    public static final String COM_MYSQL_CJ_JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
     public static final String ORG_APACHE_HIVE_JDBC_HIVE_DRIVER = "org.apache.hive.jdbc.HiveDriver";
     public static final String COM_CLICKHOUSE_JDBC_DRIVER = "ru.yandex.clickhouse.ClickHouseDriver";
     public static final String COM_ORACLE_JDBC_DRIVER = "oracle.jdbc.driver.OracleDriver";
@@ -330,5 +361,15 @@ public class TaskConstants {
      * resource.upload.path
      */
     public static final String RESOURCE_UPLOAD_PATH = "resource.upload.path";
+
+    /**
+     * data.quality.jar.name
+     */
+    public static final String DATA_QUALITY_JAR_NAME = "data-quality.jar.name";
+
+    /**
+     * data.quality.error.output.path
+     */
+    public static final String DATA_QUALITY_ERROR_OUTPUT_PATH = "data-quality.error.output.path";
 
 }

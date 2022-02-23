@@ -130,7 +130,7 @@ public interface UsersService {
      * @throws Exception exception
      */
     Map<String, Object> updateUser(User loginUser, int userId, String userName, String userPassword, String email,
-                                   int tenantId, String phone, String queue, int state) throws IOException;
+                                   int tenantId, String phone, String queue, int state, String timeZone) throws IOException;
 
     /**
      * delete user
@@ -152,6 +152,25 @@ public interface UsersService {
      */
     Map<String, Object> grantProject(User loginUser, int userId, String projectIds);
 
+
+    /**
+     * grant project by code
+     *
+     * @param loginUser login user
+     * @param userId user id
+     * @param projectCode project code
+     * @return grant result code
+     */
+    Map<String, Object> grantProjectByCode(User loginUser, int userId, long projectCode);
+
+    /**
+     * revoke the project permission for specified user.
+     * @param loginUser     Login user
+     * @param userId        User id
+     * @param projectCode   Project Code
+     * @return
+     */
+    Map<String, Object> revokeProject(User loginUser, int userId, long projectCode);
 
     /**
      * grant resource

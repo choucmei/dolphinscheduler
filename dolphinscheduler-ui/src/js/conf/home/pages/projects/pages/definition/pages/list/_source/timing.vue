@@ -327,6 +327,7 @@
       } else {
         this.workerGroup = this.timingData.item.workerGroup
       }
+      this.environmentCode = this.timingData.item.environmentCode
       if (this.timingData.item.crontab !== null) {
         this.crontab = this.timingData.item.crontab
       }
@@ -363,7 +364,7 @@
         this._getNotifyGroupList().then(() => {
           this.$nextTick(() => {
             // let list = _.filter(this.notifyGroupList, v => v.id === item.warningGroupId)
-            this.warningGroupId = item.warningGroupId
+            this.warningGroupId = item.warningGroupId === 0 ? '' : item.warningGroupId
           })
         }).catch(() => { this.warningGroupId = '' })
       } else {

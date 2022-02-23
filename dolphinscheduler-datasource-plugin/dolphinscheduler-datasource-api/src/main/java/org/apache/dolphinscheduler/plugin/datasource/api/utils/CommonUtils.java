@@ -17,6 +17,7 @@
 
 package org.apache.dolphinscheduler.plugin.datasource.api.utils;
 
+import static org.apache.dolphinscheduler.spi.task.TaskConstants.DATA_QUALITY_JAR_NAME;
 import static org.apache.dolphinscheduler.spi.task.TaskConstants.HADOOP_SECURITY_AUTHENTICATION;
 import static org.apache.dolphinscheduler.spi.task.TaskConstants.HADOOP_SECURITY_AUTHENTICATION_STARTUP_STATE;
 import static org.apache.dolphinscheduler.spi.task.TaskConstants.JAVA_SECURITY_KRB5_CONF;
@@ -79,7 +80,9 @@ public class CommonUtils {
      * @throws IOException errors
      */
     public static void loadKerberosConf(String javaSecurityKrb5Conf, String loginUserKeytabUsername, String loginUserKeytabPath) throws IOException {
-        loadKerberosConf(javaSecurityKrb5Conf, loginUserKeytabUsername, loginUserKeytabPath, new Configuration());
+        Configuration configuration = new Configuration();
+        configuration.setClassLoader(configuration.getClass().getClassLoader());
+        loadKerberosConf(javaSecurityKrb5Conf, loginUserKeytabUsername, loginUserKeytabPath, configuration);
     }
 
     /**
@@ -102,6 +105,16 @@ public class CommonUtils {
             return true;
         }
         return false;
+    }
+
+    public static String getDataQualityJarName() {
+        String dqsJarName = PropertyUtils.getString(DATA_QUALITY_JAR_NAME);
+
+        if (org.apache.commons.lang.StringUtils.isEmpty(dqsJarName)) {
+            return "dolphinscheduler-data-quality.jar";
+        }
+
+        return dqsJarName;
     }
 
     /**
@@ -136,5 +149,4 @@ public class CommonUtils {
             return resourceUploadPath;
         }
     }
-
 }

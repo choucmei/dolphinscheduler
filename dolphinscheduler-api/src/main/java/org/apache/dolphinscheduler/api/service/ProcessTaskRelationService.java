@@ -43,22 +43,6 @@ public interface ProcessTaskRelationService {
                                                   long postTaskCode);
 
     /**
-     * move task to other processDefinition
-     *
-     * @param loginUser login user info
-     * @param projectCode project code
-     * @param processDefinitionCode process definition code
-     * @param targetProcessDefinitionCode target process definition code
-     * @param taskCode the current task code (the post task code)
-     * @return move result code
-     */
-    Map<String, Object> moveTaskProcessRelation(User loginUser,
-                                                long projectCode,
-                                                long processDefinitionCode,
-                                                long targetProcessDefinitionCode,
-                                                long taskCode);
-
-    /**
      * delete process task relation
      *
      * @param loginUser login user
@@ -123,4 +107,16 @@ public interface ProcessTaskRelationService {
     Map<String, Object> queryDownstreamRelation(User loginUser,
                                                 long projectCode,
                                                 long taskCode);
+
+    /**
+     * delete edge
+     *
+     * @param loginUser             login user
+     * @param projectCode           project code
+     * @param processDefinitionCode process definition code
+     * @param preTaskCode pre task code
+     * @param postTaskCode post task code
+     * @return delete result code
+     */
+    Map<String, Object> deleteEdge(User loginUser, long projectCode, long processDefinitionCode, long preTaskCode, long postTaskCode);
 }

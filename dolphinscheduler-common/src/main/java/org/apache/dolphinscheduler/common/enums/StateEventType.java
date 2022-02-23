@@ -24,7 +24,10 @@ public enum StateEventType {
     PROCESS_STATE_CHANGE(0, "process statechange"),
     TASK_STATE_CHANGE(1, "task state change"),
     PROCESS_TIMEOUT(2, "process timeout"),
-    TASK_TIMEOUT(3, "task timeout");
+    TASK_TIMEOUT(3, "task timeout"),
+    WAIT_TASK_GROUP(4, "wait task group"),
+    TASK_RETRY(5, "task retry")
+    ;
 
     StateEventType(int code, String descp) {
         this.code = code;

@@ -18,19 +18,38 @@
 """Task shell."""
 
 from pydolphinscheduler.constants import TaskType
-from pydolphinscheduler.core.task import Task, TaskParams
+from pydolphinscheduler.core.task import Task
 
 
 class Shell(Task):
     """Task shell object, declare behavior for shell task to dolphinscheduler.
 
-    TODO maybe we could use instance name to replace attribute `name`
-    which is simplify as `task_shell = Shell(command = "echo 1")` and
-    task.name assign to `task_shell`
+    :param name: A unique, meaningful string for the shell task.
+    :param command: One or more command want to run in this task.
+
+        It could be simply command::
+
+            Shell(name=..., command="echo task shell")
+
+        or maybe same commands trying to do complex task::
+
+            command = '''echo task shell step 1;
+            echo task shell step 2;
+            echo task shell step 3
+            '''
+
+            Shell(name=..., command=command)
+
     """
 
-    def __init__(
-        self, name: str, command: str, task_type: str = TaskType.SHELL, *args, **kwargs
-    ):
-        task_params = TaskParams(raw_script=command)
-        super().__init__(name, task_type, task_params, *args, **kwargs)
+    # TODO maybe we could use instance name to replace attribute `name`
+    #  which is simplify as `task_shell = Shell(command = "echo 1")` and
+    #  task.name assign to `task_shell`
+
+    _task_custom_attr = {
+        "raw_script",
+    }
+
+    def __init__(self, name: str, command: str, *args, **kwargs):
+        super().__init__(name, TaskType.SHELL, *args, **kwargs)
+        self.raw_script = command
