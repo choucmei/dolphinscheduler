@@ -39,12 +39,14 @@ export function useCustomParams({
         type: 'custom-parameters',
         field: field,
         name: t(`project.node.${name}`),
+        class: 'btn-custom-parameters',
         span,
         children: [
           {
             type: 'input',
             field: 'prop',
             span: 10,
+            class: 'input-param-key',
             props: {
               placeholder: t('project.node.prop_tips'),
               maxLength: 256
@@ -57,7 +59,7 @@ export function useCustomParams({
                   return new Error(t('project.node.prop_tips'))
                 }
 
-                const sameItems = model.localParams.filter(
+                const sameItems = model[field].filter(
                   (item: { prop: string }) => item.prop === value
                 )
 
@@ -71,6 +73,7 @@ export function useCustomParams({
             type: 'input',
             field: 'value',
             span: 10,
+            class: 'input-param-value',
             props: {
               placeholder: t('project.node.value_tips'),
               maxLength: 256
@@ -85,12 +88,14 @@ export function useCustomParams({
         type: 'custom-parameters',
         field: field,
         name: t(`project.node.${name}`),
+        class: 'btn-custom-parameters',
         span,
         children: [
           {
             type: 'input',
             field: 'prop',
             span: 6,
+            class: 'input-param-key',
             props: {
               placeholder: t('project.node.prop_tips'),
               maxLength: 256
@@ -103,7 +108,7 @@ export function useCustomParams({
                   return new Error(t('project.node.prop_tips'))
                 }
 
-                const sameItems = model.localParams.filter(
+                const sameItems = model[field].filter(
                   (item: { prop: string }) => item.prop === value
                 )
 
@@ -131,6 +136,7 @@ export function useCustomParams({
             type: 'input',
             field: 'value',
             span: 6,
+            class: 'input-param-value',
             props: {
               placeholder: t('project.node.value_tips'),
               maxLength: 256

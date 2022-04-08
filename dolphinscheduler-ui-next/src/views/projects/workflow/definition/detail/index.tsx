@@ -53,10 +53,15 @@ export default defineComponent({
     const code = Number(route.params.code)
 
     const definition = ref<WorkflowDefinition>()
+    const readonly = ref(false)
+    const isLoading = ref(true)
 
     const refresh = () => {
+      isLoading.value = true
       queryProcessDefinitionByCode(code, projectCode).then((res: any) => {
+        readonly.value = res.processDefinition.releaseState === 'ONLINE'
         definition.value = res
+        isLoading.value = false
       })
     }
 
@@ -82,6 +87,7 @@ export default defineComponent({
           locations: JSON.stringify(locations),
           name: saveForm.name,
           tenantCode: saveForm.tenantCode,
+          executionType: saveForm.executionType,
           description: saveForm.description,
           globalParams: JSON.stringify(globalParams),
           timeout: saveForm.timeoutFlag ? saveForm.timeout : 0,
@@ -89,7 +95,7 @@ export default defineComponent({
         },
         code,
         projectCode
-      ).then((res: any) => {
+      ).then((ignored: any) => {
         message.success(t('project.dag.success'))
         router.push({ path: `/projects/${projectCode}/workflow-definition` })
       })
@@ -107,12 +113,15 @@ export default defineComponent({
           theme.darkTheme ? Styles['dark'] : Styles['light']
         ]}
       >
-        <Dag
-          definition={definition.value}
-          onRefresh={refresh}
-          projectCode={projectCode}
-          onSave={save}
-        />
+        {!isLoading.value && (
+          <Dag
+            definition={definition.value}
+            onRefresh={refresh}
+            projectCode={projectCode}
+            onSave={save}
+            readonly={readonly.value}
+          />
+        )}
       </div>
     )
   }

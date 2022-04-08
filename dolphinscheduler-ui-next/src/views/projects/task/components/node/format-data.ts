@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
-import { omit } from 'lodash'
+import { find, omit, cloneDeep } from 'lodash'
 import type {
   INodeData,
   ITaskData,
   ITaskParams,
   ISqoopTargetParams,
-  ISqoopSourceParams
+  ISqoopSourceParams,
+  ILocalParam,
+  IDependTask
 } from './types'
 
 export function formatParams(data: INodeData): {
@@ -30,6 +32,9 @@ export function formatParams(data: INodeData): {
   taskDefinitionJsonObj: object
 } {
   const taskParams: ITaskParams = {}
+  if (data.taskType === 'SUB_PROCESS') {
+    taskParams.processDefinitionCode = data.processDefinitionCode
+  }
   if (
     data.taskType === 'SPARK' ||
     data.taskType === 'MR' ||
@@ -72,6 +77,7 @@ export function formatParams(data: INodeData): {
     taskParams.connectTimeout = data.connectTimeout
     taskParams.socketTimeout = data.socketTimeout
   }
+
   if (data.taskType === 'SQOOP') {
     taskParams.jobType = data.isCustomTask ? 'CUSTOM' : 'TEMPLATE'
     taskParams.localParams = data.localParams
@@ -173,6 +179,16 @@ export function formatParams(data: INodeData): {
     taskParams.sqlType = data.sqlType
     taskParams.preStatements = data.preStatements
     taskParams.postStatements = data.postStatements
+    taskParams.sendEmail = data.sendEmail
+    taskParams.displayRows = data.displayRows
+    if (data.sqlType === '0' && data.sendEmail) {
+      taskParams.title = data.title
+      taskParams.groupId = data.groupId
+    }
+    if (data.type === 'HIVE') {
+      if (data.udfs) taskParams.udfs = data.udfs.join(',')
+      taskParams.connParams = data.connParams
+    }
   }
 
   if (data.taskType === 'PROCEDURE') {
@@ -181,6 +197,121 @@ export function formatParams(data: INodeData): {
     taskParams.method = data.method
   }
 
+  if (data.taskType === 'SEATUNNEL') {
+    if (data.deployMode === 'local') {
+      data.master = 'local'
+      data.masterUrl = ''
+      data.deployMode = 'client'
+    }
+    buildRawScript(data)
+  }
+
+  if (data.taskType === 'SWITCH') {
+    taskParams.switchResult = {}
+    taskParams.switchResult.dependTaskList = data.dependTaskList
+    taskParams.switchResult.nextNode = data.nextNode
+  }
+
+  if (data.taskType === 'CONDITIONS') {
+    taskParams.dependence = {
+      relation: data.relation,
+      dependTaskList: data.dependTaskList
+    }
+    taskParams.conditionResult = {}
+    if (data.successBranch) {
+      taskParams.conditionResult.successNode = [data.successBranch]
+    }
+    if (data.failedBranch) {
+      taskParams.conditionResult.failedNode = [data.failedBranch]
+    }
+  }
+
+  if (data.taskType === 'DATAX') {
+    taskParams.customConfig = data.customConfig ? 1 : 0
+    if (taskParams.customConfig === 0) {
+      taskParams.dsType = data.dsType
+      taskParams.dataSource = data.dataSource
+      taskParams.dtType = data.dtType
+      taskParams.dataTarget = data.dataTarget
+      taskParams.sql = data.sql
+      taskParams.targetTable = data.targetTable
+      taskParams.jobSpeedByte = data.jobSpeedByte
+      taskParams.jobSpeedRecord = data.jobSpeedRecord
+      taskParams.preStatements = data.preStatements
+      taskParams.postStatements = data.postStatements
+    } else {
+      taskParams.json = data.json
+      data?.localParams?.map((param: ILocalParam) => {
+        param.direct = 'IN'
+        param.type = 'VARCHAR'
+      })
+    }
+    taskParams.xms = data.xms
+    taskParams.xmx = data.xmx
+  }
+  if (data.taskType === 'DEPENDENT') {
+    const dependTaskList = cloneDeep(data.dependTaskList)?.map(
+      (taskItem: IDependTask) => {
+        if (taskItem.dependItemList?.length) {
+          taskItem.dependItemList.forEach((dependItem) => {
+            delete dependItem.definitionCodeOptions
+            delete dependItem.depTaskCodeOptions
+            delete dependItem.dateOptions
+          })
+        }
+        return taskItem
+      }
+    )
+    taskParams.dependence = {
+      relation: data.relation,
+      dependTaskList: dependTaskList
+    }
+  }
+  if (data.taskType === 'DATA_QUALITY') {
+    taskParams.ruleId = data.ruleId
+    taskParams.ruleInputParameter = {
+      check_type: data.check_type,
+      comparison_execute_sql: data.comparison_execute_sql,
+      comparison_name: data.comparison_name,
+      failure_strategy: data.failure_strategy,
+      operator: data.operator,
+      src_connector_type: data.src_connector_type,
+      src_datasource_id: data.src_datasource_id,
+      src_table: data.src_table,
+      statistics_execute_sql: data.statistics_execute_sql,
+      statistics_name: data.statistics_name,
+      target_connector_type: data.target_connector_type,
+      target_datasource_id: data.target_datasource_id,
+      target_table: data.target_table,
+      threshold: data.threshold
+    }
+    taskParams.sparkParameters = {
+      deployMode: data.deployMode,
+      driverCores: data.driverCores,
+      driverMemory: data.driverMemory,
+      executorCores: data.executorCores,
+      executorMemory: data.executorMemory,
+      numExecutors: data.numExecutors,
+      others: data.others
+    }
+  }
+
+  if (data.taskType === 'EMR') {
+    taskParams.type = data.type
+    taskParams.jobFlowDefineJson = data.jobFlowDefineJson
+  }
+  if (data.taskType === 'PIGEON') {
+    taskParams.targetJobName = data.targetJobName
+  }
+  let timeoutNotifyStrategy = ''
+  if (data.timeoutNotifyStrategy) {
+    if (data.timeoutNotifyStrategy.length === 1) {
+      timeoutNotifyStrategy = data.timeoutNotifyStrategy[0]
+    }
+    if (data.timeoutNotifyStrategy.length === 2) {
+      timeoutNotifyStrategy = 'WARNFAILED'
+    }
+  }
   const params = {
     processDefinitionCode: data.processName ? String(data.processName) : '',
     upstreamCodes: data?.preTasks?.join(','),
@@ -195,10 +326,13 @@ export function formatParams(data: INodeData): {
       failRetryTimes: data.failRetryTimes ? String(data.failRetryTimes) : '0',
       flag: data.flag,
       name: data.name,
-      taskGroupId: data.taskGroupId || 0,
+      taskGroupId: data.taskGroupId,
       taskGroupPriority: data.taskGroupPriority,
       taskParams: {
-        localParams: data.localParams,
+        localParams: data.localParams?.map((item: any) => {
+          item.value = item.value || ''
+          return item
+        }),
         rawScript: data.rawScript,
         resourceList: data.resourceList?.length
           ? data.resourceList.map((id: number) => ({ id }))
@@ -207,9 +341,9 @@ export function formatParams(data: INodeData): {
       },
       taskPriority: data.taskPriority,
       taskType: data.taskType,
-      timeout: data.timeout,
+      timeout: data.timeoutFlag ? data.timeout : 0,
       timeoutFlag: data.timeoutFlag ? 'OPEN' : 'CLOSE',
-      timeoutNotifyStrategy: data.timeoutNotifyStrategy?.join(''),
+      timeoutNotifyStrategy: data.timeoutFlag ? timeoutNotifyStrategy : '',
       workerGroup: data.workerGroup
     }
   } as {
@@ -236,7 +370,9 @@ export function formatModel(data: ITaskData) {
     ...omit(data.taskParams, ['resourceList', 'mainJar', 'localParams']),
     environmentCode: data.environmentCode === -1 ? null : data.environmentCode,
     timeoutFlag: data.timeoutFlag === 'OPEN',
-    timeoutNotifyStrategy: [data.timeoutNotifyStrategy] || [],
+    timeoutNotifyStrategy: data.timeoutNotifyStrategy
+      ? [data.timeoutNotifyStrategy]
+      : [],
     localParams: data.taskParams?.localParams || []
   } as INodeData
 
@@ -248,12 +384,6 @@ export function formatModel(data: ITaskData) {
       (item: { id: number }) => item.id
     )
   }
-  if (
-    data.taskParams?.connectTimeout !== 60000 ||
-    data.taskParams?.socketTimeout !== 60000
-  ) {
-    params.timeoutSetting = true
-  }
   if (data.taskParams?.mainJar) {
     params.mainJar = data.taskParams?.mainJar.id
   }
@@ -261,6 +391,7 @@ export function formatModel(data: ITaskData) {
   if (data.taskParams?.method) {
     params.method = data.taskParams?.method
   }
+
   if (data.taskParams?.targetParams) {
     const targetParams: ISqoopTargetParams = JSON.parse(
       data.taskParams.targetParams
@@ -269,15 +400,25 @@ export function formatModel(data: ITaskData) {
     params.targetHiveTable = targetParams.hiveTable
     params.targetHiveCreateTable = targetParams.createHiveTable
     params.targetHiveDropDelimiter = targetParams.dropDelimiter
-    params.targetHiveOverWrite = targetParams.hiveOverWrite
+    params.targetHiveOverWrite =
+      targetParams.hiveOverWrite === void 0 ? true : targetParams.hiveOverWrite
     params.targetHiveTargetDir = targetParams.hiveTargetDir
     params.targetHiveReplaceDelimiter = targetParams.replaceDelimiter
     params.targetHivePartitionKey = targetParams.hivePartitionKey
     params.targetHivePartitionValue = targetParams.hivePartitionValue
     params.targetHdfsTargetPath = targetParams.targetPath
-    params.targetHdfsDeleteTargetDir = targetParams.deleteTargetDir
-    params.targetHdfsCompressionCodec = targetParams.compressionCodec
-    params.targetHdfsFileType = targetParams.fileType
+    params.targetHdfsDeleteTargetDir =
+      targetParams.deleteTargetDir === void 0
+        ? true
+        : targetParams.deleteTargetDir
+    params.targetHdfsCompressionCodec =
+      targetParams.compressionCodec === void 0
+        ? 'snappy'
+        : targetParams.compressionCodec
+    params.targetHdfsFileType =
+      targetParams.fileType === void 0
+        ? '--as-avrodatafile'
+        : targetParams.fileType
     params.targetHdfsFieldsTerminated = targetParams.fieldsTerminated
     params.targetHdfsLinesTerminated = targetParams.linesTerminated
     params.targetMysqlType = targetParams.targetType
@@ -288,7 +429,10 @@ export function formatModel(data: ITaskData) {
     params.targetMysqlLinesTerminated = targetParams.linesTerminated
     params.targetMysqlIsUpdate = targetParams.isUpdate
     params.targetMysqlTargetUpdateKey = targetParams.targetUpdateKey
-    params.targetMysqlUpdateMode = targetParams.targetUpdateMode
+    params.targetMysqlUpdateMode =
+      targetParams.targetUpdateMode === void 0
+        ? 'allowinsert'
+        : targetParams.targetUpdateMode
   }
   if (data.taskParams?.sourceParams) {
     const sourceParams: ISqoopSourceParams = JSON.parse(
@@ -301,8 +445,8 @@ export function formatModel(data: ITaskData) {
     params.srcQueryType = sourceParams.srcQueryType
     params.sourceMysqlType = sourceParams.srcType
     params.sourceMysqlDatasource = sourceParams.srcDatasource
-    params.mapColumnHive = sourceParams.mapColumnHive
-    params.mapColumnJava = sourceParams.mapColumnJava
+    params.mapColumnHive = sourceParams.mapColumnHive || []
+    params.mapColumnJava = sourceParams.mapColumnJava || []
     params.sourceHdfsExportDir = sourceParams.exportDir
     params.sourceHiveDatabase = sourceParams.hiveDatabase
     params.sourceHiveTable = sourceParams.hiveTable
@@ -310,5 +454,116 @@ export function formatModel(data: ITaskData) {
     params.sourceHivePartitionValue = sourceParams.hivePartitionValue
   }
 
+  if (data.taskParams?.rawScript) {
+    params.rawScript = data.taskParams?.rawScript
+  }
+
+  if (data.taskParams?.switchResult) {
+    params.switchResult = data.taskParams.switchResult
+    params.dependTaskList = data.taskParams.switchResult?.dependTaskList
+      ? data.taskParams.switchResult?.dependTaskList
+      : []
+    params.nextNode = data.taskParams.switchResult?.nextNode
+  }
+
+  if (data.taskParams?.dependence) {
+    params.dependTaskList = data.taskParams?.dependence.dependTaskList || []
+    params.relation = data.taskParams?.dependence.relation
+  }
+  if (data.taskParams?.ruleInputParameter) {
+    params.check_type = data.check_type
+    params.comparison_execute_sql = data.comparison_execute_sql
+    params.comparison_name = data.comparison_name
+    params.failure_strategy = data.failure_strategy
+    params.operator = data.operator
+    params.src_connector_type = data.src_connector_type
+    params.src_datasource_id = data.src_datasource_id
+    params.src_table = data.src_table
+    params.statistics_execute_sql = data.statistics_execute_sql
+    params.statistics_name = data.statistics_name
+    params.target_connector_type = data.target_connector_type
+    params.target_datasource_id = data.target_datasource_id
+    params.target_table = data.target_table
+    params.threshold = data.threshold
+  }
+  if (data.taskParams?.sparkParameters) {
+    params.deployMode = data.deployMode
+    params.driverCores = data.driverCores
+    params.driverMemory = data.driverMemory
+    params.executorCores = data.executorCores
+    params.executorMemory = data.executorMemory
+    params.numExecutors = data.numExecutors
+    params.others = data.others
+  }
+
+  if (data.taskParams?.jobFlowDefineJson) {
+    params.jobFlowDefineJson = data.taskParams.jobFlowDefineJson
+  }
+
+  if (data.taskParams?.processDefinitionCode) {
+    params.processDefinitionCode = data.taskParams.processDefinitionCode
+  }
+
+  if (data.taskParams?.conditionResult?.successNode?.length) {
+    params.successBranch = data.taskParams.conditionResult.successNode[0]
+  }
+  if (data.taskParams?.conditionResult?.failedNode?.length) {
+    params.failedBranch = data.taskParams.conditionResult.failedNode[0]
+  }
+  if (data.taskParams?.udfs) {
+    params.udfs = data.taskParams.udfs?.split(',')
+  }
+  if (data.taskParams?.customConfig !== void 0) {
+    params.customConfig = data.taskParams.customConfig === 1 ? true : false
+  }
+  if (data.taskParams?.jobType) {
+    params.isCustomTask = data.taskParams.jobType === 'CUSTOM'
+  }
   return params
+}
+
+const buildRawScript = (model: INodeData) => {
+  const baseScript = 'sh ${WATERDROP_HOME}/bin/start-waterdrop.sh'
+  if (!model.resourceList) return
+
+  let master = model.master
+  let masterUrl = model?.masterUrl ? model?.masterUrl : ''
+  let deployMode = model.deployMode
+  const queue = model.queue
+
+  if (model.deployMode === 'local') {
+    master = 'local'
+    masterUrl = ''
+    deployMode = 'client'
+  }
+
+  if (master === 'yarn' || master === 'local') {
+    masterUrl = ''
+  }
+
+  let localParams = ''
+  model?.localParams?.forEach((param: any) => {
+    localParams = localParams + ' --variable ' + param.prop + '=' + param.value
+  })
+
+  let rawScript = ''
+  model.resourceList?.forEach((id: number) => {
+    const item = find(model.resourceFiles, { id: id })
+
+    rawScript =
+      rawScript +
+      baseScript +
+      ' --master ' +
+      master +
+      masterUrl +
+      ' --deploy-mode ' +
+      deployMode +
+      ' --queue ' +
+      queue
+    if (item && item.fullName) {
+      rawScript = rawScript + ' --config ' + item.fullName
+    }
+    rawScript = rawScript + localParams + ' \n'
+  })
+  model.rawScript = rawScript ? rawScript : ''
 }
