@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import type { ITaskState } from '@/utils/types'
+import type { ITaskState } from '@/common/types'
 
 interface CodeReq {
   projectCode: number
@@ -57,8 +57,8 @@ interface SubIdReq {
 }
 
 interface TaskReq {
-  taskCode: string
-  taskId: number
+  taskCode?: string
+  taskId?: number
 }
 
 interface LongestReq {
