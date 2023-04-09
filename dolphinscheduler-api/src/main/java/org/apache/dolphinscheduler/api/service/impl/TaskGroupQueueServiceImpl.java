@@ -17,26 +17,26 @@
 
 package org.apache.dolphinscheduler.api.service.impl;
 
-import org.apache.dolphinscheduler.api.constants.ApiFuncIdentificationConstant;
 import org.apache.dolphinscheduler.api.enums.Status;
-import org.apache.dolphinscheduler.api.service.ProjectService;
 import org.apache.dolphinscheduler.api.service.TaskGroupQueueService;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
-import org.apache.dolphinscheduler.common.Constants;
+import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.enums.AuthorizationType;
 import org.apache.dolphinscheduler.dao.entity.Project;
 import org.apache.dolphinscheduler.dao.entity.TaskGroupQueue;
 import org.apache.dolphinscheduler.dao.entity.User;
+import org.apache.dolphinscheduler.dao.mapper.ProjectMapper;
 import org.apache.dolphinscheduler.dao.mapper.TaskGroupQueueMapper;
-import org.apache.dolphinscheduler.dao.mapper.TaskInstanceMapper;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -47,18 +47,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
  * task group queue service
  */
 @Service
+@Slf4j
 public class TaskGroupQueueServiceImpl extends BaseServiceImpl implements TaskGroupQueueService {
 
     @Autowired
     TaskGroupQueueMapper taskGroupQueueMapper;
 
     @Autowired
-    private TaskInstanceMapper taskInstanceMapper;
-
-    @Autowired
-    private ProjectService projectService;
-
-    private static final Logger logger = LoggerFactory.getLogger(TaskGroupQueueServiceImpl.class);
+    private ProjectMapper projectMapper;
 
     /**
      * query tasks in task group queue by group id
@@ -70,21 +66,22 @@ public class TaskGroupQueueServiceImpl extends BaseServiceImpl implements TaskGr
      * @return tasks list
      */
     @Override
-    public Map<String, Object> queryTasksByGroupId(User loginUser, String taskName
-        , String processName, Integer status, int groupId, int pageNo, int pageSize) {
+    public Map<String, Object> queryTasksByGroupId(User loginUser, String taskName, String processName, Integer status,
+                                                   int groupId, int pageNo, int pageSize) {
         Map<String, Object> result = new HashMap<>();
-        boolean canOperatorPermissions = canOperatorPermissions(loginUser, null, AuthorizationType.TASK_GROUP, ApiFuncIdentificationConstant.TASK_GROUP_QUEUE);
-        if (!canOperatorPermissions){
-            result.put(Constants.STATUS, Status.NO_CURRENT_OPERATING_PERMISSION);
+        Page<TaskGroupQueue> page = new Page<>(pageNo, pageSize);
+        PageInfo<TaskGroupQueue> pageInfo = new PageInfo<>(pageNo, pageSize);
+        Set<Integer> projectIds = resourcePermissionCheckService
+                .userOwnedResourceIdsAcquisition(AuthorizationType.PROJECTS, loginUser.getId(), log);
+        if (projectIds.isEmpty()) {
+            result.put(Constants.DATA_LIST, pageInfo);
+            putMsg(result, Status.SUCCESS);
             return result;
         }
-        Page<TaskGroupQueue> page = new Page<>(pageNo, pageSize);
-        Map<String, Object> objectMap = this.projectService.queryAuthorizedProject(loginUser, loginUser.getId());
-        List<Project> projects = (List<Project>)objectMap.get(Constants.DATA_LIST);
-        IPage<TaskGroupQueue> taskGroupQueue = taskGroupQueueMapper.queryTaskGroupQueueByTaskGroupIdPaging(page, taskName
-            ,processName,status,groupId,projects);
+        List<Project> projects = projectMapper.selectBatchIds(projectIds);
+        IPage<TaskGroupQueue> taskGroupQueue = taskGroupQueueMapper.queryTaskGroupQueueByTaskGroupIdPaging(page,
+                taskName, processName, status, groupId, projects);
 
-        PageInfo<TaskGroupQueue> pageInfo = new PageInfo<>(pageNo, pageSize);
         pageInfo.setTotal((int) taskGroupQueue.getTotal());
         pageInfo.setTotalList(taskGroupQueue.getRecords());
 
@@ -104,7 +101,7 @@ public class TaskGroupQueueServiceImpl extends BaseServiceImpl implements TaskGr
      */
     @Override
     public Map<String, Object> queryTasksByProcessId(User loginUser, int pageNo, int pageSize, int processId) {
-        return this.doQuery(loginUser, pageNo, pageSize,  processId);
+        return this.doQuery(loginUser, pageNo, pageSize, processId);
     }
 
     /**
@@ -117,7 +114,7 @@ public class TaskGroupQueueServiceImpl extends BaseServiceImpl implements TaskGr
      */
     @Override
     public Map<String, Object> queryAllTasks(User loginUser, int pageNo, int pageSize) {
-        return this.doQuery(loginUser, pageNo, pageSize,  0);
+        return this.doQuery(loginUser, pageNo, pageSize, 0);
     }
 
     public Map<String, Object> doQuery(User loginUser, int pageNo, int pageSize,
@@ -150,12 +147,33 @@ public class TaskGroupQueueServiceImpl extends BaseServiceImpl implements TaskGr
     }
 
     @Override
-    public void forceStartTask(int queueId,int forceStart) {
-        taskGroupQueueMapper.updateForceStart(queueId,forceStart);
+    public void deleteByTaskInstanceIds(List<Integer> taskInstanceIds) {
+        if (CollectionUtils.isEmpty(taskInstanceIds)) {
+            return;
+        }
+        taskGroupQueueMapper.deleteByTaskInstanceIds(taskInstanceIds);
+    }
+
+    @Override
+    public void deleteByWorkflowInstanceId(Integer workflowInstanceId) {
+        taskGroupQueueMapper.deleteByWorkflowInstanceId(workflowInstanceId);
+    }
+
+    @Override
+    public void forceStartTask(int queueId, int forceStart) {
+        taskGroupQueueMapper.updateForceStart(queueId, forceStart);
     }
 
     @Override
     public void modifyPriority(Integer queueId, Integer priority) {
-        taskGroupQueueMapper.modifyPriority(queueId,priority);
+        taskGroupQueueMapper.modifyPriority(queueId, priority);
+    }
+
+    @Override
+    public void deleteByTaskGroupIds(List<Integer> taskGroupIds) {
+        if (CollectionUtils.isEmpty(taskGroupIds)) {
+            return;
+        }
+        taskGroupQueueMapper.deleteByTaskGroupIds(taskGroupIds);
     }
 }

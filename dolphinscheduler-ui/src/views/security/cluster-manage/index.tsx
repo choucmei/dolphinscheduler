@@ -15,21 +15,26 @@
  * limitations under the License.
  */
 
-import { defineComponent, onMounted, toRefs, watch } from 'vue'
+import {
+  defineComponent,
+  getCurrentInstance,
+  onMounted,
+  toRefs,
+  watch
+} from 'vue'
 import {
   NButton,
-  NCard,
   NDataTable,
   NIcon,
-  NInput,
   NPagination,
   NSpace
 } from 'naive-ui'
 import { SearchOutlined } from '@vicons/antd'
 import { useI18n } from 'vue-i18n'
 import { useTable } from './use-table'
-import Card from '@/components/card'
 import ClusterModal from './components/cluster-modal'
+import Card from '@/components/card'
+import Search from "@/components/input-search";
 
 const clusterManage = defineComponent({
   name: 'cluster-manage',
@@ -69,6 +74,8 @@ const clusterManage = defineComponent({
       requestData()
     }
 
+    const trim = getCurrentInstance()?.appContext.config.globalProperties.trim
+
     onMounted(() => {
       createColumns(variables)
       requestData()
@@ -86,7 +93,8 @@ const clusterManage = defineComponent({
       onConfirmModal,
       onUpdatePageSize,
       handleModalChange,
-      onSearch
+      onSearch,
+      trim
     }
   },
   render() {
@@ -103,7 +111,7 @@ const clusterManage = defineComponent({
 
     return (
       <NSpace vertical>
-        <NCard>
+        <Card>
           <NSpace justify='space-between'>
             <NButton
               size='small'
@@ -114,25 +122,20 @@ const clusterManage = defineComponent({
               {t('security.cluster.create_cluster')}
             </NButton>
             <NSpace>
-              <NInput
-                size='small'
-                clearable
-                v-model={[this.searchVal, 'value']}
+              <Search
+                v-model:value={this.searchVal}
                 placeholder={t('security.cluster.search_tips')}
+                onSearch={onSearch}
               />
               <NButton size='small' type='primary' onClick={onSearch}>
-                {{
-                  icon: () => (
-                    <NIcon>
-                      <SearchOutlined />
-                    </NIcon>
-                  )
-                }}
+                <NIcon>
+                  <SearchOutlined />
+                </NIcon>
               </NButton>
             </NSpace>
           </NSpace>
-        </NCard>
-        <Card>
+        </Card>
+        <Card title={t('menu.cluster_manage')}>
           <NSpace vertical>
             <NDataTable
               loading={loadingRef}
