@@ -47,9 +47,11 @@ public abstract class AbstractK8sTask extends AbstractRemoteTask {
             TaskResponse response = abstractK8sTaskExecutor.run(buildCommand());
             setExitStatusCode(response.getExitStatusCode());
             setAppIds(response.getAppIds());
+            dealOutParam(abstractK8sTaskExecutor.getVarPool());
         } catch (Exception e) {
+            log.error("k8s task submit failed with error");
             exitStatusCode = -1;
-            throw new TaskException("k8s process failure", e);
+            throw new TaskException("Execute k8s task error", e);
         }
     }
 
@@ -84,4 +86,5 @@ public abstract class AbstractK8sTask extends AbstractRemoteTask {
      */
     protected abstract String buildCommand();
 
+    protected abstract void dealOutParam(String result);
 }
